@@ -274,15 +274,55 @@ graph LR
     style Test fill:#f0f9ff,stroke:#0ea5e9
 ```
 
-## 9. File Map
+## 9. CI/CD — GitHub Pages Deployment
+
+```mermaid
+graph TD
+    Push["git push to main"] --> GHA["GitHub Actions<br/><small>.github/workflows/deploy.yml</small>"]
+
+    subgraph CI["Build Job"]
+        Checkout["actions/checkout@v4"]
+        SetupNode["actions/setup-node@v4<br/><small>Node 22 + npm cache</small>"]
+        Install["npm ci"]
+        TestStep["npm test -- --run"]
+        BuildStep["npm run build<br/><small>tsc -b && vite build</small>"]
+        Upload["actions/upload-pages-artifact@v3<br/><small>dist/</small>"]
+
+        Checkout --> SetupNode --> Install --> TestStep --> BuildStep --> Upload
+    end
+
+    subgraph CD["Deploy Job"]
+        DeployStep["actions/deploy-pages@v4"]
+    end
+
+    GHA --> CI
+    CI --> CD
+    CD --> Live["Live Site<br/><small>https://&lt;user&gt;.github.io/case-converter-react/</small>"]
+
+    style Push fill:#f3e8ff,stroke:#7c3aed
+    style Live fill:#ecfdf5,stroke:#059669
+    style CI fill:#f0f9ff,stroke:#0ea5e9
+    style CD fill:#fef3c7,stroke:#d97706
+```
+
+Key configuration:
+- `vite.config.ts` sets `base: '/case-converter-react/'` so assets resolve under the repo subpath
+- The workflow uses the newer **GitHub Pages artifact** approach (no `gh-pages` branch needed)
+- Tests run before build — a failing test blocks deployment
+- `concurrency` ensures only one deployment runs at a time
+
+## 10. File Map
 
 ```mermaid
 graph TD
     Root["case-converter-react/"]
 
+    Root --> GH[".github/"]
     Root --> Src["src/"]
     Root --> Docs["docs/"]
     Root --> Config["Config Files"]
+
+    GH --> Workflows["workflows/<br/><small>deploy.yml</small>"]
 
     Src --> Components["components/"]
     Src --> Lib["lib/"]

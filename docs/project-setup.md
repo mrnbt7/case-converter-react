@@ -35,6 +35,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  base: '/case-converter-react/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -235,7 +236,11 @@ npm test
 
 ```
 case-converter-react/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml       # GitHub Pages deployment
 ├── docs/
+│   ├── hld.md
 │   ├── project-setup.md
 │   └── scaffolds.md
 ├── public/
@@ -277,3 +282,83 @@ case-converter-react/
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Preview the production build |
 | `npm test` | Run unit tests in watch mode |
+
+## 8. Deploy to GitHub Pages
+
+### 8.1 Set the Base Path
+
+Add `base` to `vite.config.ts` so assets resolve correctly under the repo subpath:
+
+```ts
+export default defineConfig({
+  base: '/case-converter-react/',
+  // ...
+})
+```
+
+> **Note:** If your repo name differs, update the `base` value to match: `base: '/<repo-name>/'`
+
+### 8.2 Create the GitHub Actions Workflow
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+The workflow runs on every push to `main`:
+1. Installs dependencies (`npm ci`)
+2. Runs unit tests
+3. Builds for production
+4. Deploys the `dist/` folder to GitHub Pages
+
+### 8.3 Enable GitHub Pages
+
+1. Push the code to a GitHub repo
+2. Go to **Settings → Pages → Source** and select **GitHub Actions**
+3. The workflow triggers automatically on push to `main`
+
+The site will be live at: `https://<username>.github.io/case-converter-react/`

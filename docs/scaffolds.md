@@ -104,3 +104,11 @@ export default defineConfig([
 ## React Compiler
 
 Not enabled in this template due to dev/build performance impact. See [React Compiler installation docs](https://react.dev/learn/react-compiler/installation) to add it.
+
+## GitHub Pages Deployment
+
+The project includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys to GitHub Pages on every push to `main`.
+
+The `base` option in `vite.config.ts` is set to `/case-converter-react/` so asset paths resolve correctly under the repo subpath.
+
+See [Project Setup Guide — Deploy to GitHub Pages](project-setup.md#8-deploy-to-github-pages) for full details.

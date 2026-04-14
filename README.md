@@ -35,6 +35,14 @@ npm install
 npm run dev
 ```
 
+## Deployment
+
+The app auto-deploys to GitHub Pages on every push to `main` via GitHub Actions.
+
+Live at: `https://<username>.github.io/case-converter-react/`
+
+See [Project Setup Guide — Deploy to GitHub Pages](docs/project-setup.md#8-deploy-to-github-pages) for setup instructions.
+
 ## Scripts
 
 | Command | Description |
@@ -48,6 +56,5 @@ npm run dev
 ## Docs
 
 - [High-Level Design](docs/hld.md) — Architecture, data flow, component hierarchy, and mermaid diagrams
-
-- [Project Setup Guide](docs/project-setup.md) — Step-by-step instructions for scaffolding the project, adding shadcn/ui, Tailwind CSS, and unit tests
-- [Project Scaffolds](docs/scaffolds.md) — Vite template details and ESLint configuration
+- [Project Setup Guide](docs/project-setup.md) — Step-by-step instructions for scaffolding the project, adding shadcn/ui, Tailwind CSS, unit tests, and GitHub Pages deployment
+- [Project Scaffolds](docs/scaffolds.md) — Vite template details, dependencies, and ESLint configuration
