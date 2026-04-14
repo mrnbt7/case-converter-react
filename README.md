@@ -2,6 +2,8 @@
 
 A beautiful, responsive text case converter built with React, TypeScript, Vite, Tailwind CSS, and shadcn/ui. Supports 31 case formats across 4 categories with dark/light theme toggle, clipboard actions, and live text stats.
 
+![CaseConverter](./docs/res/case-converter.jpg)
+
 ## Features
 
 - 31 case conversions grouped into 4 color-coded categories
