@@ -1,6 +1,6 @@
 # Project Setup Guide
 
-This document walks through the steps to scaffold the `case-converter-react` project and add unit tests.
+This document walks through the steps to scaffold the `case-converter-react` project from scratch.
 
 ---
 
@@ -19,37 +19,146 @@ cd case-converter-react
 npm install
 ```
 
-This generates the following project structure:
-
-```
-case-converter-react/
-├── public/
-├── src/
-│   ├── App.css
-│   ├── App.tsx
-│   ├── index.css
-│   ├── main.tsx
-│   └── assets/
-├── index.html
-├── package.json
-├── tsconfig.json
-├── tsconfig.app.json
-├── tsconfig.node.json
-├── eslint.config.js
-└── vite.config.ts
-```
-
-## 2. Run the Dev Server
+## 2. Add Tailwind CSS
 
 ```bash
-npm run dev
+npm install tailwindcss @tailwindcss/vite
 ```
 
-This starts the Vite dev server with Hot Module Replacement (HMR).
+Update `vite.config.ts` to include the Tailwind plugin and a path alias:
 
-## 3. Add Unit Tests
+```ts
+/// <reference types="vitest/config" />
+import path from 'path'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
-### 3.1 Install Testing Dependencies
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.ts',
+  },
+})
+```
+
+Add the path alias to `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+And to `tsconfig.app.json`:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "ignoreDeprecations": "6.0"
+  }
+}
+```
+
+Replace `src/index.css` with Tailwind imports and a custom violet/indigo theme using `oklch` colors for both light and dark modes. See the source file for the full theme definition.
+
+## 3. Add shadcn/ui
+
+Initialize shadcn:
+
+```bash
+npx shadcn@latest init -d
+```
+
+Add the required components:
+
+```bash
+npx shadcn@latest add card textarea badge separator tooltip
+```
+
+Install icons:
+
+```bash
+npm install lucide-react
+```
+
+Wrap the app with `TooltipProvider` in `src/main.tsx`:
+
+```tsx
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import './index.css'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <TooltipProvider>
+      <App />
+    </TooltipProvider>
+  </StrictMode>,
+)
+```
+
+## 4. Build the Case Converter
+
+### 4.1 Conversion Logic
+
+Create `src/lib/converters/index.ts` with 31 case conversion functions organized into 4 groups:
+
+| Group | Color | Cases |
+|---|---|---|
+| General | Violet | UPPERCASE, lowercase, Sentence case, Title Case, Capitalize Words, InVeRsE, SwAp CaSe, aLtErNaTiNg, SpOnGe CaSe |
+| Programming | Sky | camelCase, PascalCase, snake_case, CONSTANT_CASE, MACRO_CASE, flatcase, UPPERFLATCASE, camel_Snake_Case, Pascal_Snake_Case |
+| Delimiter | Emerald | kebab-case, hyphen-case, dot.case, path/case, space case, no case |
+| Specialized | Amber | Header-Case, Train-Case, Ada_Case, COBOL-CASE, UPPER-KEBAB, UPPER.DOT, Capital.Dot |
+
+Each group exports a `color` and `activeColor` for the UI to render color-coded buttons.
+
+### 4.2 UI Component
+
+Create `src/components/CaseConverter.tsx` with:
+
+- Gradient background (violet → sky) with backdrop blur on cards
+- Header with gradient logo icon and gradient text title
+- Dark/light theme toggle (respects system preference via `matchMedia`)
+- **Input card** — textarea with paste/clear actions and color-coded stat badges (paragraphs, words, characters)
+- **Convert to card** — 2-column responsive grid of 4 color-coded group panels, each with labeled buttons and tooltips showing example output
+- **Output card** — read-only textarea with active case badge, swap (output → input), and copy-to-clipboard actions
+
+### 4.3 App Entry
+
+Update `src/App.tsx`:
+
+```tsx
+import CaseConverter from '@/components/CaseConverter'
+
+function App() {
+  return <CaseConverter />
+}
+
+export default App
+```
+
+## 5. Add Unit Tests
+
+### 5.1 Install Testing Dependencies
 
 ```bash
 npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
@@ -62,70 +171,57 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
 | `@testing-library/jest-dom` | Custom matchers like `toBeInTheDocument()` |
 | `jsdom` | Browser-like DOM environment for tests |
 
-### 3.2 Configure Vitest
+### 5.2 Configure Vitest
 
-Update `vite.config.ts` to include the test configuration:
+The test configuration is already in `vite.config.ts` (see step 2). Add `vitest/globals` to the types in `tsconfig.app.json`:
 
-```ts
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/setupTests.ts',
-  },
-})
+```json
+"types": ["vite/client", "vitest/globals"]
 ```
 
-- `globals: true` — enables global test functions (`test`, `expect`, `describe`) without imports
-- `environment: 'jsdom'` — simulates a browser DOM
-- `setupFiles` — runs before each test file
+### 5.3 Create the Setup File
 
-### 3.3 Create the Setup File
-
-Create `src/setupTests.ts`:
+Create `src/setupTests.ts` with jest-dom matchers and a `matchMedia` mock (required because jsdom doesn't implement `window.matchMedia`):
 
 ```ts
 import '@testing-library/jest-dom'
+
+Object.defineProperty(window, 'matchMedia', {
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+})
 ```
 
-This makes matchers like `toBeInTheDocument()` available in all tests.
-
-### 3.4 Add a Test Script
-
-Add the `test` script to `package.json`:
-
-```json
-"scripts": {
-  "dev": "vite",
-  "build": "tsc -b && vite build",
-  "lint": "eslint .",
-  "preview": "vite preview",
-  "test": "vitest"
-}
-```
-
-### 3.5 Write a Test
+### 5.4 Write a Test
 
 Create `src/App.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import App from './App'
 
 test('renders app', () => {
-  render(<App />)
-  expect(screen.getByText(/get started/i)).toBeInTheDocument()
+  render(
+    <TooltipProvider>
+      <App />
+    </TooltipProvider>
+  )
+  expect(screen.getByText(/case converter/i)).toBeInTheDocument()
 })
 ```
 
-> **Tip:** When querying by text, make sure the regex matches a single element. Use `getAllByText` if multiple matches are expected, or use a more specific query like `getByRole` to avoid ambiguity.
+> **Note:** The app must be wrapped in `TooltipProvider` in tests, matching the production setup in `main.tsx`.
 
-### 3.6 Run Tests
+### 5.5 Run Tests
 
 ```bash
 # Run once
@@ -135,7 +231,44 @@ npm test -- --run
 npm test
 ```
 
-## 4. Available Scripts
+## 6. Project Structure
+
+```
+case-converter-react/
+├── docs/
+│   ├── project-setup.md
+│   └── scaffolds.md
+├── public/
+├── src/
+│   ├── components/
+│   │   ├── ui/              # shadcn/ui components
+│   │   │   ├── badge.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── separator.tsx
+│   │   │   ├── textarea.tsx
+│   │   │   └── tooltip.tsx
+│   │   └── CaseConverter.tsx
+│   ├── lib/
+│   │   ├── converters/
+│   │   │   └── index.ts     # 31 case conversion functions
+│   │   └── utils.ts         # shadcn cn() utility
+│   ├── App.tsx
+│   ├── App.test.tsx
+│   ├── index.css            # Tailwind + theme variables
+│   ├── main.tsx
+│   └── setupTests.ts
+├── index.html
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+├── eslint.config.js
+└── components.json          # shadcn/ui config
+```
+
+## 7. Available Scripts
 
 | Command | Description |
 |---|---|
